@@ -50,6 +50,19 @@ if uploaded_file:
             # Voeg kolom toe
             sheet_2['komt voor in sheet_1'] = resultaten
 
+            # Samenvatting berekenen
+            aantal_bon_aanwezig = sum(1 for r in resultaten if r == "Bon aanwezig")
+            aantal_gewicht_verschil = sum(1 for r in resultaten if isinstance(r, (float, int)))
+            aantal_geen_bon = sum(1 for r in resultaten if r == "Geen bon aanwezig")
+
+            # Toon samenvatting
+            st.subheader("📊 Resultaatoverzicht")
+            st.markdown(f"""
+            - ✅ Bon aanwezig: **{aantal_bon_aanwezig}**
+            - ⚖️ Gewicht verschilt (getal als resultaat): **{aantal_gewicht_verschil}**
+            - ❌ Geen bon aanwezig: **{aantal_geen_bon}**
+            """)
+
             # Toon voorbeeld
             st.subheader("📋 Voorbeeld van resultaten")
             st.dataframe(sheet_2[['Weegbonnummer', 'Gewicht(kg)', 'komt voor in sheet_1']].head())
