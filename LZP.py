@@ -27,7 +27,7 @@ if "ingelogd" not in st.session_state or not st.session_state["ingelogd"]:
 # 📁 Upload twee bestanden
 st.subheader("📂 Upload je Excelbestanden")
 prezero_file = st.file_uploader("Upload PreZero Excelbestand (.xlsm)", type=["xlsm"], key="prezero")
-avalex_file = st.file_uploader("Upload Avalex Excelbestand (.xlsm)", type=["xlsm"], key="avalex")
+avalex_file = st.file_uploader("Upload Avalex Excelbestand (.xlsx)", type=["xlsx"], key="avalex")
 
 if prezero_file and avalex_file:
     # ✅ Inladen van data
