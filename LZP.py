@@ -16,7 +16,7 @@ if uploaded_file:
         ws1 = wb['Overslag_import']
         ws2 = wb['Blad1']
 
-        # Haal weegbondata op uit sheet_1
+        # Haal weegbondata op uit sheet_1 (altijd als string)
         bon_dict = {}
         for row in ws1.iter_rows(min_row=2, values_only=True):
             weegbonnr, gewicht = row[0], row[1]
@@ -35,13 +35,13 @@ if uploaded_file:
             voorbeeld_output = []
 
             for i, row in enumerate(ws2.iter_rows(min_row=2, values_only=True), start=2):
-                bon = row[col_bon]
+                bon = str(row[col_bon]).strip() if row[col_bon] is not None else ""
                 gewicht = row[col_gewicht]
 
                 if not bon:
                     resultaat = "Geen bon aanwezig"
-                elif str(bon).strip() in bon_dict:
-                    gew_ref = bon_dict[str(bon).strip()]
+                elif bon in bon_dict:
+                    gew_ref = bon_dict[bon]
                     try:
                         if round(float(gewicht), 1) == round(float(gew_ref), 1):
                             resultaat = "Bon aanwezig"
