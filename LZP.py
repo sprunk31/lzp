@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
+st.set_page_config(page_title="LZP Vergelijktool")
+st.title("📊 LZP Vergelijktool")
+
+# 🔐 Login met gebruikers uit Streamlit secrets
 gebruikers = st.secrets["auth"]
 
 def login():
@@ -13,7 +17,6 @@ def login():
             st.session_state["ingelogd"] = True
             st.success(f"✅ Ingelogd als {username}")
             st.rerun()
-
         else:
             st.error("❌ Ongeldige inloggegevens")
 
@@ -21,32 +24,30 @@ if "ingelogd" not in st.session_state or not st.session_state["ingelogd"]:
     login()
     st.stop()
 
-st.set_page_config(page_title="LZP Vergelijktool")
-st.title("📊 LZP Vergelijktool")
+# 📁 Upload twee bestanden
+st.subheader("📂 Upload je Excelbestanden")
+prezero_file = st.file_uploader("Upload PreZero Excelbestand (.xlsm)", type=["xlsm"], key="prezero")
+avalex_file = st.file_uploader("Upload Avalex Excelbestand (.xlsm)", type=["xlsm"], key="avalex")
 
-uploaded_file = st.file_uploader("Upload een LZP Excelbestand (.xlsm)", type=["xlsm"])
+if prezero_file and avalex_file:
+    # ✅ Inladen van data
+    prezero_sheets = pd.read_excel(prezero_file, sheet_name=None)
+    avalex_sheets = pd.read_excel(avalex_file, sheet_name=None)
 
-if uploaded_file:
-    # Lees alle tabbladen in als DataFrames
-    all_sheets = pd.read_excel(uploaded_file, sheet_name=None)
-
-    # Check of benodigde sheets bestaan
-    if 'Overslag_import' not in all_sheets or 'Blad1' not in all_sheets:
-        st.error("❌ Vereiste tabbladen 'Overslag_import' of 'Blad1' ontbreken.")
+    if 'Overslag_import' not in prezero_sheets or 'Blad1' not in avalex_sheets:
+        st.error("❌ Vereiste tabbladen ontbreken in één van de bestanden.")
     else:
-        sheet_1 = all_sheets['Overslag_import']
-        sheet_2 = all_sheets['Blad1']
+        df_prezero = prezero_sheets['Overslag_import']
+        df_avalex = avalex_sheets['Blad1']
 
-        # Controle op kolommen
-        if all(k in sheet_1.columns for k in ['weegbonnr', 'gewicht']) and \
-           all(k in sheet_2.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
+        if all(k in df_prezero.columns for k in ['weegbonnr', 'gewicht']) and \
+           all(k in df_avalex.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
 
-            # Maak dictionary van weegbonnr -> gewicht
-            bon_dict = sheet_1.set_index('weegbonnr')['gewicht'].to_dict()
-
+            # 🔍 Vergelijken
+            bon_dict = df_prezero.set_index('weegbonnr')['gewicht'].to_dict()
             resultaten = []
 
-            for _, row in sheet_2.iterrows():
+            for _, row in df_avalex.iterrows():
                 bon = row['Weegbonnummer']
                 gewicht = row['Gewicht(kg)']
 
@@ -66,34 +67,28 @@ if uploaded_file:
 
                 resultaten.append(resultaat)
 
-            # Voeg kolom toe
-            sheet_2['komt voor in sheet_1'] = resultaten
+            df_avalex['komt voor in PreZero'] = resultaten
 
-            # Samenvatting berekenen
-            aantal_bon_aanwezig = sum(1 for r in resultaten if r == "Bon aanwezig")
-            aantal_gewicht_verschil = sum(1 for r in resultaten if isinstance(r, (float, int)))
-            aantal_geen_bon = sum(1 for r in resultaten if r == "Geen bon aanwezig")
-
-            # Toon samenvatting
+            # 📊 Samenvatting
             st.subheader("📊 Resultaatoverzicht")
             st.markdown(f"""
-            - ✅ Bon aanwezig: **{aantal_bon_aanwezig}**
-            - ⚖️ Gewicht verschilt (getal als resultaat): **{aantal_gewicht_verschil}**
-            - ❌ Geen bon aanwezig: **{aantal_geen_bon}**
+            - ✅ Bon aanwezig: **{resultaten.count("Bon aanwezig")}**
+            - ⚖️ Gewicht verschilt: **{sum(isinstance(r, (float, int)) for r in resultaten)}**
+            - ❌ Geen bon aanwezig: **{resultaten.count("Geen bon aanwezig")}**
             """)
 
-            # Opslaan in geheugen en aanbieden als download
+            # 💾 Resultaat opslaan
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                sheet_1.to_excel(writer, sheet_name='Overslag_import', index=False)
-                sheet_2.to_excel(writer, sheet_name='Blad1', index=False)
+                df_prezero.to_excel(writer, sheet_name='PreZero', index=False)
+                df_avalex.to_excel(writer, sheet_name='Avalex', index=False)
 
             st.success("✅ Verwerking voltooid.")
             st.download_button(
-                label="📥 Download resultaatbestand",
+                "📥 Download resultaatbestand",
                 data=output.getvalue(),
                 file_name="LZP_resultaat.xlsx"
             )
-
         else:
-            st.error("❌ Kolommen 'weegbonnr', 'gewicht', 'Weegbonnummer' of 'Gewicht(kg)' ontbreken.")
+            st.error("❌ Kolommen ontbreken in de Excelbestanden.")
+
