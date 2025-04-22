@@ -5,16 +5,16 @@ from io import BytesIO
 gebruikers = st.secrets["auth"]
 
 def login():
-    st.title("🔐 Inloggen")
+    st.title("🔐 LZP Inloggen")
     username = st.text_input("Gebruikersnaam")
     password = st.text_input("Wachtwoord", type="password")
     if st.button("Inloggen"):
         if gebruikers.get(username) == password:
             st.session_state["ingelogd"] = True
-            st.success(f"Ingelogd als {username}")
+            st.success(f"✅ Ingelogd als {username}")
             st.experimental_rerun()
         else:
-            st.error("Ongeldige inloggegevens")
+            st.error("❌ Ongeldige inloggegevens")
 
 if "ingelogd" not in st.session_state or not st.session_state["ingelogd"]:
     login()
