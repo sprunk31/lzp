@@ -2,25 +2,20 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-# 🔐 Inloggegevens instellen
-gebruikers = {
-    "admin": "geheim123",
-    "collega": "inzamel2024"
-}
+gebruikers = st.secrets["auth"]
 
 def login():
-    st.title("🔐 LZP Inloggen")
+    st.title("🔐 Inloggen")
     username = st.text_input("Gebruikersnaam")
     password = st.text_input("Wachtwoord", type="password")
     if st.button("Inloggen"):
         if gebruikers.get(username) == password:
             st.session_state["ingelogd"] = True
-            st.success("✅ Ingelogd als " + username)
+            st.success(f"Ingelogd als {username}")
             st.experimental_rerun()
         else:
-            st.error("❌ Ongeldige inloggegevens")
+            st.error("Ongeldige inloggegevens")
 
-# 🔒 Check loginstatus
 if "ingelogd" not in st.session_state or not st.session_state["ingelogd"]:
     login()
     st.stop()
