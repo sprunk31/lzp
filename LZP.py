@@ -1,77 +1,71 @@
 import streamlit as st
-from openpyxl import load_workbook
-from io import BytesIO
 import pandas as pd
+from io import BytesIO
 
+st.set_page_config(page_title="LZP Vergelijktool")
 st.title("📊 LZP Vergelijktool")
 
 uploaded_file = st.file_uploader("Upload een LZP Excelbestand (.xlsm)", type=["xlsm"])
 
 if uploaded_file:
-    wb = load_workbook(uploaded_file, data_only=True)
+    # Lees alle tabbladen in als DataFrames
+    all_sheets = pd.read_excel(uploaded_file, sheet_name=None)
 
-    if 'Overslag_import' not in wb.sheetnames or 'Blad1' not in wb.sheetnames:
+    # Check of benodigde sheets bestaan
+    if 'Overslag_import' not in all_sheets or 'Blad1' not in all_sheets:
         st.error("❌ Vereiste tabbladen 'Overslag_import' of 'Blad1' ontbreken.")
     else:
-        ws1 = wb['Overslag_import']
-        ws2 = wb['Blad1']
+        sheet_1 = all_sheets['Overslag_import']
+        sheet_2 = all_sheets['Blad1']
 
-        # Haal weegbondata op uit sheet_1
-        bon_dict = {}
-        for row in ws1.iter_rows(min_row=2, values_only=True):
-            weegbonnr, gewicht = row[0], row[1]
-            if weegbonnr:
-                bon_dict[str(weegbonnr).strip()] = gewicht
+        # Controle op kolommen
+        if all(k in sheet_1.columns for k in ['weegbonnr', 'gewicht']) and \
+           all(k in sheet_2.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
 
-        # Zoek kolommen in Blad1
-        headers = [cell.value for cell in ws2[1]]
-        if 'Weegbonnummer' in headers and 'Gewicht(kg)' in headers:
-            col_bon = headers.index("Weegbonnummer")
-            col_gewicht = headers.index("Gewicht(kg)")
+            # Maak dictionary van weegbonnr -> gewicht
+            bon_dict = sheet_1.set_index('weegbonnr')['gewicht'].to_dict()
 
-            nieuwe_kolom = len(headers) + 1
-            ws2.cell(row=1, column=nieuwe_kolom).value = "komt voor in sheet_1"
+            resultaten = []
 
-            voorbeeld_output = []
+            for _, row in sheet_2.iterrows():
+                bon = row['Weegbonnummer']
+                gewicht = row['Gewicht(kg)']
 
-            for i, row in enumerate(ws2.iter_rows(min_row=2, values_only=True), start=2):
-                bon_raw = row[col_bon]
-                gewicht = row[col_gewicht]
-
-                bon = str(bon_raw).strip() if bon_raw else ""
-
-                if not bon:
+                if pd.isna(bon):
                     resultaat = "Geen bon aanwezig"
                 elif bon in bon_dict:
-                    gew_ref = bon_dict[bon]
+                    gewicht_ref = bon_dict[bon]
                     try:
-                        if round(float(gewicht), 1) == round(float(gew_ref), 1):
-                            resultaat = "Bon aanwezig"
+                        if pd.isna(gewicht) or round(gewicht, 1) != round(gewicht_ref, 1):
+                            resultaat = gewicht_ref
                         else:
-                            resultaat = gew_ref
+                            resultaat = "Bon aanwezig"
                     except:
-                        resultaat = gew_ref
+                        resultaat = gewicht_ref
                 else:
                     resultaat = "Geen bon aanwezig"
 
-                ws2.cell(row=i, column=nieuwe_kolom).value = resultaat
+                resultaten.append(resultaat)
 
-                if i <= 6:  # eerste 5 rijen + kop
-                    voorbeeld_output.append({
-                        "Weegbonnummer": bon,
-                        "Gewicht(kg)": gewicht,
-                        "komt voor in sheet_1": resultaat
-                    })
+            # Voeg kolom toe
+            sheet_2['komt voor in sheet_1'] = resultaten
 
-            # Toon voorbeeldoutput als tabel
+            # Toon voorbeeld
             st.subheader("📋 Voorbeeld van resultaten")
-            st.dataframe(pd.DataFrame(voorbeeld_output))
+            st.dataframe(sheet_2[['Weegbonnummer', 'Gewicht(kg)', 'komt voor in sheet_1']].head())
 
-            # Downloadlink
+            # Opslaan in geheugen en aanbieden als download
             output = BytesIO()
-            wb.save(output)
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                sheet_1.to_excel(writer, sheet_name='Overslag_import', index=False)
+                sheet_2.to_excel(writer, sheet_name='Blad1', index=False)
+
             st.success("✅ Verwerking voltooid.")
-            st.download_button("📥 Download resultaatbestand", output.getvalue(), file_name="LZP_resultaat.xlsx")
+            st.download_button(
+                label="📥 Download resultaatbestand",
+                data=output.getvalue(),
+                file_name="LZP_resultaat.xlsx"
+            )
 
         else:
-            st.error("❌ Kolommen 'Weegbonnummer' of 'Gewicht(kg)' niet gevonden in tabblad Blad1.")
+            st.error("❌ Kolommen 'weegbonnr', 'gewicht', 'Weegbonnummer' of 'Gewicht(kg)' ontbreken.")
