@@ -45,17 +45,17 @@ if prezero_file and avalex_file:
         if 'Bestemming' in df_avalex.columns:
             df_avalex = df_avalex[df_avalex['Bestemming'] == waarde]
         else:
-            st.error("❌ Kolom Bestemming ontbreekt in Avalex-bestand.")
+            st.error("❌ Kolom 'Bestemming' ontbreekt in Avalex-bestand.")
             st.stop()
 
         # ✅ Controleer benodigde kolommen
         if all(k in df_prezero.columns for k in ['weegbonnr', 'gewicht']) and \
            all(k in df_avalex.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
 
-            # 🔧 Strip voorloopnullen in 'Weegbonnummer' (maar behoud lege cellen)
+            # 🔧 Alleen voorloopnullen strippen uit 'Weegbonnummer' van Avalex
             def strip_leading_zeros(val):
                 if pd.isna(val) or str(val).strip() == "":
-                    return val
+                    return ""
                 return str(val).lstrip("0")
 
             df_avalex['Weegbonnummer'] = df_avalex['Weegbonnummer'].apply(strip_leading_zeros)
@@ -68,7 +68,7 @@ if prezero_file and avalex_file:
                 bon = row['Weegbonnummer']
                 gewicht = row['Gewicht(kg)']
 
-                if pd.isna(bon):
+                if bon == "":
                     resultaat = "Geen bon aanwezig"
                 elif bon in bon_dict:
                     gewicht_ref = bon_dict[bon]
