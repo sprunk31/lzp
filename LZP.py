@@ -118,7 +118,7 @@ if prezero_file and avalex_file:
 
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df_prezero_export.to_excel(writer, sheet_name='PreZero', index=False)
-                df_avalex_export.to_excel(writer, sheet_name='Avalex', index=False
+                df_avalex_export.to_excel(writer, sheet_name='Avalex', index=False)
 
             st.success("✅ Verwerking voltooid.")
             st.download_button(
