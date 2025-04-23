@@ -40,8 +40,8 @@ if prezero_file and avalex_file:
         df_prezero = prezero_sheets['Overslag_import']
         df_avalex = avalex_sheets['Blad1']
 
-        # ✅ Filter op kolom 'k'
-        waarde = "Suez Recycling Services Berkel"  # <- hier kun je jouw gewenste filterwaarde zetten
+        # ✅ Filter op kolom 'Bestemming'
+        waarde = "Suez Recycling Services Berkel"
         if 'Bestemming' in df_avalex.columns:
             df_avalex = df_avalex[df_avalex['Bestemming'] == waarde]
         else:
@@ -51,6 +51,14 @@ if prezero_file and avalex_file:
         # ✅ Controleer benodigde kolommen
         if all(k in df_prezero.columns for k in ['weegbonnr', 'gewicht']) and \
            all(k in df_avalex.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
+
+            # 🔧 Strip voorloopnullen in 'Weegbonnummer' (maar behoud lege cellen)
+            def strip_leading_zeros(val):
+                if pd.isna(val) or str(val).strip() == "":
+                    return val
+                return str(val).lstrip("0")
+
+            df_avalex['Weegbonnummer'] = df_avalex['Weegbonnummer'].apply(strip_leading_zeros)
 
             # 🔍 Vergelijken
             bon_dict = df_prezero.set_index('weegbonnr')['gewicht'].to_dict()
