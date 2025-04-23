@@ -81,7 +81,7 @@ if prezero_file and avalex_file:
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df_prezero.to_excel(writer, sheet_name='PreZero', index=False)
-                gefilterd_avalex = df_avalex[df_avalex['k'] == 'Suez Recycling Services Berkel']
+                gefilterd_avalex = df_avalex[df_avalex['Bestemming'] == 'Suez Recycling Services Berkel']
                 gefilterd_avalex.to_excel(writer, sheet_name='Avalex', index=False)
 
             st.success("✅ Verwerking voltooid.")
