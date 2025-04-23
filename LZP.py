@@ -111,6 +111,11 @@ if prezero_file and avalex_file:
 
             # 💾 Resultaat opslaan
             output = BytesIO()
+
+            # Kolommen voor export opschonen
+            df_avalex_export = df_avalex.drop(columns=['Weegbonnummer_genorm'])
+            df_prezero_export = df_prezero.drop(columns=['weegbonnr_genorm'])
+
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df_prezero.to_excel(writer, sheet_name='PreZero', index=False)
                 df_avalex.to_excel(writer, sheet_name='Avalex', index=False)
