@@ -1,55 +1,15 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
-import base64
-import os
 
-st.set_page_config(page_title="LZP Vergelijktool", page_icon="📊", layout="centered")
-
-# ✅ Logo laden als base64 (voor Streamlit Cloud)
-logo_path = os.path.join("https://github.com/sprunk31/lzp/tree/main/assets", "logo.png")
-with open(logo_path, "rb") as image_file:
-    encoded = base64.b64encode(image_file.read()).decode()
-    logo_html = f"""
-        <div class="main-logo">
-            <img src="data:image/png;base64,{encoded}" width="300">
-        </div>
-    """
-
-# ✅ Styling en logo tonen
-st.markdown(f"""
-    <style>
-        .main-logo {{
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }}
-        .section-header {{
-            font-size: 1.3em;
-            margin-top: 2rem;
-            color: #34495e;
-        }}
-        .stButton>button {{
-            background-color: #2c3e50;
-            color: white;
-            border-radius: 8px;
-            padding: 0.5em 1em;
-        }}
-        .stDownloadButton>button {{
-            background-color: #27ae60;
-            color: white;
-            border-radius: 8px;
-            padding: 0.5em 1em;
-        }}
-    </style>
-    {logo_html}
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="LZP Vergelijktool")
+st.title("📊 LZP Vergelijktool")
 
 # 🔐 Login met gebruikers uit Streamlit secrets
 gebruikers = st.secrets["auth"]
 
 def login():
-    st.markdown("<div class='section-header'>🔐 LZP Inloggen</div>", unsafe_allow_html=True)
+    st.title("🔐 LZP Inloggen")
     username = st.text_input("Gebruikersnaam")
     password = st.text_input("Wachtwoord", type="password")
     if st.button("Inloggen"):
@@ -65,12 +25,13 @@ if "ingelogd" not in st.session_state or not st.session_state["ingelogd"]:
     st.stop()
 
 # 📁 Upload twee bestanden
-st.markdown("<div class='section-header'>📂 Upload je Excelbestanden</div>", unsafe_allow_html=True)
+st.subheader("📂 Upload je Excelbestanden")
 prezero_file = st.file_uploader("Upload PreZero Excelbestand (.xlsm, .xlsx, .xls)", type=["xlsm", "xlsx", "xls"], key="prezero")
 avalex_file = st.file_uploader("Upload Avalex Excelbestand (.xlsm, .xlsx, .xls)", type=["xlsm", "xlsx", "xls"], key="avalex")
 
 if prezero_file and avalex_file:
     try:
+        # ✅ Inladen van data met automatische engine-detectie
         prezero_sheets = pd.read_excel(prezero_file, sheet_name=None, engine=None)
         avalex_sheets = pd.read_excel(avalex_file, sheet_name=None, engine=None)
     except Exception as e:
@@ -83,6 +44,7 @@ if prezero_file and avalex_file:
         df_prezero = prezero_sheets['Overslag_import']
         df_avalex = avalex_sheets['Blad1']
 
+        # ✅ Filter op kolom 'Bestemming'
         waarde = "Suez Recycling Services Berkel"
         if 'Bestemming' in df_avalex.columns:
             df_avalex = df_avalex[df_avalex['Bestemming'] == waarde].copy()
@@ -90,9 +52,11 @@ if prezero_file and avalex_file:
             st.error("❌ Kolom 'Bestemming' ontbreekt in Avalex-bestand.")
             st.stop()
 
+        # ✅ Controleer benodigde kolommen
         if all(k in df_prezero.columns for k in ['weegbonnr', 'gewicht']) and \
            all(k in df_avalex.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
 
+            # 🔧 Normaliseren van bonnummers
             def normalize_avalex_bon(val):
                 try:
                     if pd.isna(val) or str(val).strip() == "":
@@ -110,8 +74,10 @@ if prezero_file and avalex_file:
             df_avalex['Weegbonnummer_genorm'] = df_avalex['Weegbonnummer'].apply(normalize_avalex_bon)
             df_prezero['weegbonnr_genorm'] = df_prezero['weegbonnr'].apply(normalize_prezero_bon)
 
+            # 📘 Maak dictionary van PreZero
             bon_dict = df_prezero.set_index('weegbonnr_genorm')['gewicht'].to_dict()
 
+            # 🔍 Vergelijken
             resultaten = []
             for _, row in df_avalex.iterrows():
                 bon = row['Weegbonnummer_genorm']
@@ -136,7 +102,7 @@ if prezero_file and avalex_file:
             df_avalex['komt voor in PreZero'] = resultaten
 
             # 📊 Samenvatting
-            st.markdown("<div class='section-header'>📊 Resultaatoverzicht</div>", unsafe_allow_html=True)
+            st.subheader("📊 Resultaatoverzicht")
             st.markdown(f"""
             - ✅ Bon aanwezig: **{resultaten.count("Bon aanwezig")}**
             - ⚖️ Gewicht verschilt: **{sum(isinstance(r, (float, int)) for r in resultaten)}**
