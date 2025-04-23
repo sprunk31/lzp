@@ -52,7 +52,11 @@ if prezero_file and avalex_file:
         if all(k in df_prezero.columns for k in ['weegbonnr', 'gewicht']) and \
            all(k in df_avalex.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
 
-            # 🔍 Vergelijken
+            # Weegbonnummers naar string en zonder voorloopnullen
+            df_prezero['weegbonnr'] = df_prezero['weegbonnr'].astype(str).str.lstrip('0')
+            df_avalex['Weegbonnummer'] = df_avalex['Weegbonnummer'].astype(str).str.lstrip('0')
+
+            # Herbouw de dictionary
             bon_dict = df_prezero.set_index('weegbonnr')['gewicht'].to_dict()
             resultaten = []
 
