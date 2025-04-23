@@ -16,28 +16,29 @@ with open("assets/logo.png", "rb") as image_file:
     '''
 
 # ✅ Styling en logo tonen
-st.markdown(f"""
+st.markdown("""
     <style>
-        .section-header {{
+        .section-header {
             font-size: 1.3em;
             margin-top: 2rem;
             color: #34495e;
-        }}
-        .stButton>button {{
+        }
+        .stButton>button {
             background-color: #2c3e50;
             color: white;
             border-radius: 8px;
             padding: 0.5em 1em;
-        }}
-        .stDownloadButton>button {{
+        }
+        .stDownloadButton>button {
             background-color: #27ae60;
             color: white;
             border-radius: 8px;
             padding: 0.5em 1em;
-        }}
+        }
     </style>
-    {logo_html}
 """, unsafe_allow_html=True)
+
+st.markdown(logo_html, unsafe_allow_html=True)
 
 # 🔐 Login met gebruikers uit Streamlit secrets
 gebruikers = st.secrets["auth"]
