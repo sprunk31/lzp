@@ -40,27 +40,46 @@ if prezero_file and avalex_file:
         df_prezero = prezero_sheets['Overslag_import']
         df_avalex = avalex_sheets['Blad1']
 
-        # ✅ Filter op kolom 'k'
-        waarde = "Suez Recycling Services Berkel"  # <- hier kun je jouw gewenste filterwaarde zetten
+        # ✅ Filter op kolom 'Bestemming'
+        waarde = "Suez Recycling Services Berkel"
         if 'Bestemming' in df_avalex.columns:
             df_avalex = df_avalex[df_avalex['Bestemming'] == waarde]
         else:
-            st.error("❌ Kolom Bestemming ontbreekt in Avalex-bestand.")
+            st.error("❌ Kolom 'Bestemming' ontbreekt in Avalex-bestand.")
             st.stop()
 
         # ✅ Controleer benodigde kolommen
         if all(k in df_prezero.columns for k in ['weegbonnr', 'gewicht']) and \
            all(k in df_avalex.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
 
-            # 🔍 Vergelijken
-            bon_dict = df_prezero.set_index('weegbonnr')['gewicht'].to_dict()
-            resultaten = []
+            # 🔧 Normaliseren van bonnummers
+            def normalize_avalex_bon(val):
+                try:
+                    if pd.isna(val) or str(val).strip() == "":
+                        return ""
+                    return str(int(float(val)))
+                except:
+                    return str(val).strip()
 
+            def normalize_prezero_bon(val):
+                try:
+                    return str(int(float(val)))
+                except:
+                    return str(val).strip()
+
+            df_avalex['Weegbonnummer_genorm'] = df_avalex['Weegbonnummer'].apply(normalize_avalex_bon)
+            df_prezero['weegbonnr_genorm'] = df_prezero['weegbonnr'].apply(normalize_prezero_bon)
+
+            # 📘 Maak dictionary van PreZero
+            bon_dict = df_prezero.set_index('weegbonnr_genorm')['gewicht'].to_dict()
+
+            # 🔍 Vergelijken
+            resultaten = []
             for _, row in df_avalex.iterrows():
-                bon = row['Weegbonnummer']
+                bon = row['Weegbonnummer_genorm']
                 gewicht = row['Gewicht(kg)']
 
-                if pd.isna(bon):
+                if bon == "":
                     resultaat = "Geen bon aanwezig"
                 elif bon in bon_dict:
                     gewicht_ref = bon_dict[bon]
