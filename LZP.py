@@ -52,6 +52,14 @@ if prezero_file and avalex_file:
         if all(k in df_prezero.columns for k in ['weegbonnr', 'gewicht']) and \
            all(k in df_avalex.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
 
+            def strip_leading_zeros(val):
+                if pd.isna(val):
+                    return val
+                val_str = str(val)
+                return val_str.lstrip('0')
+
+            df_avalex['Weegbonnummer'] = df_avalex['Weegbonnummer'].apply(strip_leading_zeros)
+
             # 🔍 Vergelijken
             bon_dict = df_prezero.set_index('weegbonnr')['gewicht'].to_dict()
             resultaten = []
