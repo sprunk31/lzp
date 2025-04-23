@@ -30,13 +30,9 @@ prezero_file = st.file_uploader("Upload PreZero Excelbestand (.xlsm, .xlsx, .xls
 avalex_file = st.file_uploader("Upload Avalex Excelbestand (.xlsm, .xlsx, .xls)", type=["xlsm", "xlsx", "xls"], key="avalex")
 
 if prezero_file and avalex_file:
-    try:
-        # ✅ Inladen van data (correcte engine gebruiken)
-        prezero_sheets = pd.read_excel(prezero_file, sheet_name=None, engine='openpyxl')
-        avalex_sheets = pd.read_excel(avalex_file, sheet_name=None, engine='openpyxl')
-    except Exception as e:
-        st.error(f"Fout bij het lezen van de Excelbestanden: {e}")
-        st.stop()
+    # ✅ Inladen van data
+    prezero_sheets = pd.read_excel(prezero_file, sheet_name=None)
+    avalex_sheets = pd.read_excel(avalex_file, sheet_name=None)
 
     if 'Overslag_import' not in prezero_sheets or 'Blad1' not in avalex_sheets:
         st.error("❌ Vereiste tabbladen ontbreken in één van de bestanden.")
