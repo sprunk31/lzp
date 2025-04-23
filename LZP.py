@@ -7,7 +7,7 @@ import os
 st.set_page_config(page_title="LZP Vergelijktool", page_icon="📊", layout="centered")
 
 # ✅ Logo laden als base64 (voor Streamlit Cloud)
-logo_path = os.path.join("assets", "logo.png")
+logo_path = os.path.join("https://github.com/sprunk31/lzp/tree/main/assets", "logo.png")
 with open(logo_path, "rb") as image_file:
     encoded = base64.b64encode(image_file.read()).decode()
     logo_html = f"""
