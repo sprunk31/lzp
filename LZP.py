@@ -79,14 +79,12 @@ if prezero_file and avalex_file:
         df_avalex = avalex_sheets['Blad1']
 
         waarde = "Suez Recycling Services Berkel"
-        if 'Bestemming' in df_avalex.columns:
-            df_avalex = df_avalex[df_avalex['Bestemming'] == waarde].copy()
-        else:
-            st.error("❌ Kolom 'Bestemming' ontbreekt in Avalex-bestand.")
-            st.stop()
+
+        df_avalex_filtered = df_avalex[df_avalex['Bestemming'] == waarde].copy()
+        df_avalex_rest = df_avalex[df_avalex['Bestemming'] != waarde].copy()
 
         if all(k in df_prezero.columns for k in ['weegbonnr', 'gewicht']) and \
-           all(k in df_avalex.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
+           all(k in df_avalex_filtered.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
 
             def normalize_avalex_bon(val):
                 try:
@@ -102,13 +100,13 @@ if prezero_file and avalex_file:
                 except:
                     return str(val).strip()
 
-            df_avalex['Weegbonnummer_genorm'] = df_avalex['Weegbonnummer'].apply(normalize_avalex_bon)
+            df_avalex_filtered['Weegbonnummer_genorm'] = df_avalex_filtered['Weegbonnummer'].apply(normalize_avalex_bon)
             df_prezero['weegbonnr_genorm'] = df_prezero['weegbonnr'].apply(normalize_prezero_bon)
 
             bon_dict = df_prezero.set_index('weegbonnr_genorm')['gewicht'].to_dict()
 
             resultaten = []
-            for _, row in df_avalex.iterrows():
+            for _, row in df_avalex_filtered.iterrows():
                 bon = row['Weegbonnummer_genorm']
                 gewicht = row['Gewicht(kg)']
 
@@ -128,7 +126,13 @@ if prezero_file and avalex_file:
 
                 resultaten.append(resultaat)
 
-            df_avalex['komt voor in PreZero'] = resultaten
+            df_avalex_filtered['komt voor in PreZero'] = resultaten
+
+            # Voeg lege kolom toe aan overige records
+            df_avalex_rest['komt voor in PreZero'] = ""
+
+            # Combineer alles weer
+            df_avalex_combined = pd.concat([df_avalex_filtered, df_avalex_rest], ignore_index=True)
 
             # 📊 Samenvatting
             st.markdown("<div class='section-header'>📊 Resultaatoverzicht</div>", unsafe_allow_html=True)
@@ -138,12 +142,9 @@ if prezero_file and avalex_file:
             - ❌ Geen bon aanwezig: **{resultaten.count("Geen bon aanwezig")}**
             """)
 
-            # 💾 Resultaat opslaan
             output = BytesIO()
-
-            # ❌ Kolommen niet meesturen in Excel-bestand
-            df_avalex_export = df_avalex.drop(columns=['Weegbonnummer_genorm'])
-            df_prezero_export = df_prezero.drop(columns=['weegbonnr_genorm'])
+            df_avalex_export = df_avalex_combined.drop(columns=['Weegbonnummer_genorm'], errors='ignore')
+            df_prezero_export = df_prezero.drop(columns=['weegbonnr_genorm'], errors='ignore')
 
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df_prezero_export.to_excel(writer, sheet_name='PreZero', index=False)
