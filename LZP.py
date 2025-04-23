@@ -26,8 +26,8 @@ if "ingelogd" not in st.session_state or not st.session_state["ingelogd"]:
 
 # 📁 Upload twee bestanden
 st.subheader("📂 Upload je Excelbestanden")
-prezero_file = st.file_uploader("Upload PreZero Excelbestand (.xlsm)", type=["xlsm"], key="prezero")
-avalex_file = st.file_uploader("Upload Avalex Excelbestand (.xlsm)", type=["xlsm"], key="avalex")
+prezero_file = st.file_uploader("Upload PreZero Excelbestand (.xlsm, .xlsx, .xls)", type=["xlsm", "xlsx", "xls"], key="prezero")
+avalex_file = st.file_uploader("Upload Avalex Excelbestand (.xlsm, .xlsx, .xls)", type=["xlsm", "xlsx", "xls"], key="avalex")
 
 if prezero_file and avalex_file:
     # ✅ Inladen van data
@@ -81,7 +81,8 @@ if prezero_file and avalex_file:
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df_prezero.to_excel(writer, sheet_name='PreZero', index=False)
-                df_avalex.to_excel(writer, sheet_name='Avalex', index=False)
+                gefilterd_avalex = df_avalex[df_avalex['k'] == 'Suez Recycling Services Berkel']
+                gefilterd_avalex.to_excel(writer, sheet_name='Avalex', index=False)
 
             st.success("✅ Verwerking voltooid.")
             st.download_button(
