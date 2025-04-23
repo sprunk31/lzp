@@ -31,11 +31,11 @@ avalex_file = st.file_uploader("Upload Avalex Excelbestand (.xlsm, .xlsx, .xls)"
 
 if prezero_file and avalex_file:
     try:
-        # ✅ Inladen van data (correcte engine gebruiken)
-        prezero_sheets = pd.read_excel(prezero_file, sheet_name=None, engine='openpyxl')
-        avalex_sheets = pd.read_excel(avalex_file, sheet_name=None, engine='openpyxl')
+        # ✅ Inladen van data met automatische engine-detectie
+        prezero_sheets = pd.read_excel(prezero_file, sheet_name=None, engine=None)
+        avalex_sheets = pd.read_excel(avalex_file, sheet_name=None, engine=None)
     except Exception as e:
-        st.error(f"Fout bij het lezen van de Excelbestanden: {e}")
+        st.error(f"❌ Fout bij het lezen van de Excelbestanden: {e}")
         st.stop()
 
     if 'Overslag_import' not in prezero_sheets or 'Blad1' not in avalex_sheets:
