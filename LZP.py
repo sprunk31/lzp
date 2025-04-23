@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 import base64
+from openpyxl.styles import PatternFill
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 # Pagina instellingen
 st.set_page_config(page_title="LZP Vergelijktool", page_icon="📊", layout="centered")
@@ -127,12 +129,29 @@ if prezero_file and avalex_file:
                 resultaten.append(resultaat)
 
             df_avalex_filtered['komt voor in PreZero'] = resultaten
-
-            # Voeg lege kolom toe aan overige records
             df_avalex_rest['komt voor in PreZero'] = ""
-
-            # Combineer alles weer
             df_avalex_combined = pd.concat([df_avalex_filtered, df_avalex_rest], ignore_index=True)
+
+            avalex_bonnen = df_avalex_combined['Weegbonnummer'].dropna().apply(normalize_avalex_bon).tolist()
+            ontbrekende_mask = ~df_prezero['weegbonnr_genorm'].isin(avalex_bonnen)
+
+            df_avalex_export = df_avalex_combined.drop(columns=['Weegbonnummer_genorm'], errors='ignore')
+            df_prezero_export = df_prezero.drop(columns=['weegbonnr_genorm'], errors='ignore')
+
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                # Schrijf PreZero-gegevens met opmaak
+                df_prezero_export.to_excel(writer, sheet_name='PreZero', index=False)
+                df_avalex_export.to_excel(writer, sheet_name='Avalex', index=False)
+
+                # Achtergrondkleur toepassen op rijen die ontbreken
+                wb = writer.book
+                ws = wb['PreZero']
+                fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
+                for row_idx, missing in enumerate(ontbrekende_mask, start=2):
+                    if missing:
+                        for cell in ws[row_idx]:
+                            cell.fill = fill
 
             # 📊 Samenvatting
             st.markdown("<div class='section-header'>📊 Resultaatoverzicht</div>", unsafe_allow_html=True)
@@ -140,15 +159,8 @@ if prezero_file and avalex_file:
             - ✅ Bon aanwezig: **{resultaten.count("Bon aanwezig")}**
             - ⚖️ Gewicht verschilt: **{sum(isinstance(r, (float, int)) for r in resultaten)}**
             - ❌ Geen bon aanwezig: **{resultaten.count("Geen bon aanwezig")}**
+            - 🔁 PreZero-bonnen zonder match in Avalex: **{ontbrekende_mask.sum()}**
             """)
-
-            output = BytesIO()
-            df_avalex_export = df_avalex_combined.drop(columns=['Weegbonnummer_genorm'], errors='ignore')
-            df_prezero_export = df_prezero.drop(columns=['weegbonnr_genorm'], errors='ignore')
-
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df_prezero_export.to_excel(writer, sheet_name='PreZero', index=False)
-                df_avalex_export.to_excel(writer, sheet_name='Avalex', index=False)
 
             st.success("✅ Verwerking voltooid.")
             st.download_button(
