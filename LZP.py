@@ -40,25 +40,17 @@ if prezero_file and avalex_file:
         df_prezero = prezero_sheets['Overslag_import']
         df_avalex = avalex_sheets['Blad1']
 
-        # ✅ Filter op kolom 'Bestemming'
-        waarde = "Suez Recycling Services Berkel"
+        # ✅ Filter op kolom 'k'
+        waarde = "Suez Recycling Services Berkel"  # <- hier kun je jouw gewenste filterwaarde zetten
         if 'Bestemming' in df_avalex.columns:
             df_avalex = df_avalex[df_avalex['Bestemming'] == waarde]
         else:
-            st.error("❌ Kolom 'Bestemming' ontbreekt in Avalex-bestand.")
+            st.error("❌ Kolom Bestemming ontbreekt in Avalex-bestand.")
             st.stop()
 
         # ✅ Controleer benodigde kolommen
         if all(k in df_prezero.columns for k in ['weegbonnr', 'gewicht']) and \
            all(k in df_avalex.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
-
-            # 🔧 Alleen voorloopnullen strippen uit 'Weegbonnummer' van Avalex
-            def strip_leading_zeros(val):
-                if pd.isna(val) or str(val).strip() == "":
-                    return ""
-                return str(val).lstrip("0")
-
-            df_avalex['Weegbonnummer'] = df_avalex['Weegbonnummer'].apply(strip_leading_zeros)
 
             # 🔍 Vergelijken
             bon_dict = df_prezero.set_index('weegbonnr')['gewicht'].to_dict()
@@ -68,7 +60,7 @@ if prezero_file and avalex_file:
                 bon = row['Weegbonnummer']
                 gewicht = row['Gewicht(kg)']
 
-                if bon == "":
+                if pd.isna(bon):
                     resultaat = "Geen bon aanwezig"
                 elif bon in bon_dict:
                     gewicht_ref = bon_dict[bon]
