@@ -4,6 +4,8 @@ from io import BytesIO
 import base64
 from openpyxl.styles import PatternFill
 from openpyxl.utils.dataframe import dataframe_to_rows
+from datetime import datetime
+import os
 
 # Pagina instellingen
 st.set_page_config(page_title="LZP Vergelijktool", page_icon="📊", layout="centered")
@@ -45,13 +47,21 @@ st.markdown(logo_html, unsafe_allow_html=True)
 # 🔐 Login met gebruikers uit Streamlit secrets
 gebruikers = st.secrets["auth"]
 
+def log_login(username):
+    log_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {username} ingelogd\n"
+    log_path = "log.txt"
+    with open(log_path, "a") as f:
+        f.write(log_entry)
+
 def login():
-    st.markdown("<div class='section-header'>🔐 LZP Inloggen</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>🔐 LZP Vergelijkingstool Inloggen</div>", unsafe_allow_html=True)
     username = st.text_input("Gebruikersnaam")
     password = st.text_input("Wachtwoord", type="password")
     if st.button("Inloggen"):
         if gebruikers.get(username) == password:
             st.session_state["ingelogd"] = True
+            st.session_state["gebruiker"] = username
+            log_login(username)
             st.success(f"✅ Ingelogd als {username}")
             st.rerun()
         else:
@@ -140,11 +150,9 @@ if prezero_file and avalex_file:
 
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                # Schrijf PreZero-gegevens met opmaak
                 df_prezero_export.to_excel(writer, sheet_name='PreZero', index=False)
                 df_avalex_export.to_excel(writer, sheet_name='Avalex', index=False)
 
-                # Achtergrondkleur toepassen op rijen die ontbreken
                 wb = writer.book
                 ws = wb['PreZero']
                 fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
@@ -153,7 +161,6 @@ if prezero_file and avalex_file:
                         for cell in ws[row_idx]:
                             cell.fill = fill
 
-            # 📊 Samenvatting
             st.markdown("<div class='section-header'>📊 Resultaatoverzicht</div>", unsafe_allow_html=True)
             st.markdown(f"""
             - ✅ Bon aanwezig: **{resultaten.count("Bon aanwezig")}**
