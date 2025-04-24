@@ -49,12 +49,12 @@ gebruikers = st.secrets["auth"]
 
 def log_login(username):
     log_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {username} ingelogd\n"
-    log_path = "log.txt"
+    log_path = "login_log.txt"
     with open(log_path, "a") as f:
         f.write(log_entry)
 
 def login():
-    st.markdown("<div class='section-header'>🔐 LZP Vergelijkingstool Inloggen</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>🔐 LZP Inloggen</div>", unsafe_allow_html=True)
     username = st.text_input("Gebruikersnaam")
     password = st.text_input("Wachtwoord", type="password")
     if st.button("Inloggen"):
