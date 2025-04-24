@@ -49,12 +49,12 @@ gebruikers = st.secrets["auth"]
 
 def log_login(username):
     log_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {username} ingelogd\n"
-    log_path = "login_log.txt"
+    log_path = "log.txt"
     with open(log_path, "a") as f:
         f.write(log_entry)
 
 def login():
-    st.markdown("<div class='section-header'>🔐 LZP Inloggen</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>🔐 LZP Vergelijkingstool Inloggen</div>", unsafe_allow_html=True)
     username = st.text_input("Gebruikersnaam")
     password = st.text_input("Wachtwoord", type="password")
     if st.button("Inloggen"):
@@ -70,6 +70,15 @@ def login():
 if "ingelogd" not in st.session_state or not st.session_state["ingelogd"]:
     login()
     st.stop()
+
+# 👁️‍🗨️ Alleen admin mag log zien
+if st.session_state.get("gebruiker") == "admin":
+    st.markdown("<div class='section-header'>📄 Inloglogboek (alleen admin)</div>", unsafe_allow_html=True)
+    if os.path.exists("log.txt"):
+        with open("log.txt", "r") as f:
+            st.text_area("Loginhistorie", f.read(), height=250)
+    else:
+        st.info("📭 Nog geen logboek aangemaakt.")
 
 # 📁 Upload twee bestanden
 st.markdown("<div class='section-header'>📂 Upload je Excelbestanden</div>", unsafe_allow_html=True)
