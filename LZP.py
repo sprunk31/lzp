@@ -60,7 +60,7 @@ def get_ip_and_location():
 
 def log_login(username):
     ip, location = get_ip_and_location()
-    log_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')},{username},{ip},{location}\n"
+    log_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')},{username},{ip},\"{location}\"\n"
     log_path = "log.txt"
     with open(log_path, "a") as f:
         f.write(log_entry)
@@ -88,7 +88,7 @@ if st.session_state.get("gebruiker") == "admin":
     with st.expander("📄 Inloglogboek bekijken (alleen admin)"):
         log_path = "log.txt"
         if os.path.exists(log_path):
-            df_log = pd.read_csv(log_path, names=["Datumtijd", "Gebruiker", "IP-adres", "Locatie"])
+            df_log = pd.read_csv(log_path, names=["Datumtijd", "Gebruiker", "IP-adres", "Locatie"], quotechar='"', engine='python')
             st.dataframe(df_log)
             log_buffer = BytesIO()
             df_log.to_csv(log_buffer, index=False)
