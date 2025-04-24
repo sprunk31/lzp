@@ -88,13 +88,20 @@ if st.session_state.get("gebruiker") == "admin":
     with st.expander("📄 Inloglogboek bekijken (alleen admin)"):
         log_path = "log.txt"
         if os.path.exists(log_path):
-            df_log = pd.read_csv(log_path, names=["Datumtijd", "Gebruiker", "IP-adres", "Locatie"], quotechar='"', engine='python')
+            df_log = pd.read_csv(
+                log_path,
+                names=["Datumtijd", "Gebruiker", "IP-adres", "Locatie"],
+                quotechar='"',
+                engine='python',
+                on_bad_lines='skip'
+            )
             st.dataframe(df_log)
             log_buffer = BytesIO()
             df_log.to_csv(log_buffer, index=False)
             st.download_button("📥 Download logboek als CSV", data=log_buffer.getvalue(), file_name="login_log.csv")
         else:
             st.info("📭 Nog geen logboek aangemaakt.")
+
 
 # 📁 Upload twee bestanden
 st.markdown("<div class='section-header'>📂 Upload je Excelbestanden</div>", unsafe_allow_html=True)
