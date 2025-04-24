@@ -60,7 +60,7 @@ def get_ip_and_location():
 
 def log_login(username):
     ip, location = get_ip_and_location()
-    log_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')},{username},{ip},\"{location}\"\n"
+    log_entry = f'"{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}","{username}","{ip}","{location}"\n'
     log_path = "log.txt"
     with open(log_path, "a") as f:
         f.write(log_entry)
