@@ -4,7 +4,7 @@ from io import BytesIO
 import base64
 from openpyxl.styles import PatternFill
 from openpyxl.utils.dataframe import dataframe_to_rows
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import socket
 import requests
@@ -49,6 +49,8 @@ st.markdown(logo_html, unsafe_allow_html=True)
 # 🔐 Login met gebruikers uit Streamlit secrets
 gebruikers = st.secrets["auth"]
 
+SESSION_TIMEOUT = timedelta(hours=2)
+
 def get_ip_and_location():
     try:
         ip = requests.get("https://api.ipify.org").text
@@ -73,13 +75,26 @@ def login():
         if gebruikers.get(username) == password:
             st.session_state["ingelogd"] = True
             st.session_state["gebruiker"] = username
+            st.session_state["login_time"] = datetime.now()
             log_login(username)
             st.success(f"✅ Ingelogd als {username}")
             st.rerun()
         else:
             st.error("❌ Ongeldige inloggegevens")
 
-if "ingelogd" not in st.session_state or not st.session_state["ingelogd"]:
+def check_session_valid():
+    if "login_time" not in st.session_state:
+        return False
+    if datetime.now() - st.session_state["login_time"] > SESSION_TIMEOUT:
+        return False
+    return True
+
+def logout():
+    st.session_state.clear()
+    st.success("🚪 Uitgelogd")
+    st.rerun()
+
+if "ingelogd" not in st.session_state or not st.session_state["ingelogd"] or not check_session_valid():
     login()
     st.stop()
 
@@ -102,6 +117,8 @@ if st.session_state.get("gebruiker") == "admin":
         else:
             st.info("📭 Nog geen logboek aangemaakt.")
 
+    if st.button("🚪 Uitloggen"):
+        logout()
 
 # 📁 Upload twee bestanden
 st.markdown("<div class='section-header'>📂 Upload je Excelbestanden</div>", unsafe_allow_html=True)
