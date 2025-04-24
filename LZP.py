@@ -6,6 +6,8 @@ from openpyxl.styles import PatternFill
 from openpyxl.utils.dataframe import dataframe_to_rows
 from datetime import datetime
 import os
+import socket
+import requests
 
 # Pagina instellingen
 st.set_page_config(page_title="LZP Vergelijktool", page_icon="📊", layout="centered")
@@ -47,8 +49,18 @@ st.markdown(logo_html, unsafe_allow_html=True)
 # 🔐 Login met gebruikers uit Streamlit secrets
 gebruikers = st.secrets["auth"]
 
+def get_ip_and_location():
+    try:
+        ip = requests.get("https://api.ipify.org").text
+        location_data = requests.get(f"https://ipapi.co/{ip}/json/").json()
+        location = location_data.get("city", "Onbekend") + ", " + location_data.get("country_name", "Onbekend")
+        return ip, location
+    except:
+        return "Onbekend", "Onbekend"
+
 def log_login(username):
-    log_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {username} ingelogd\n"
+    ip, location = get_ip_and_location()
+    log_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')},{username},{ip},{location}\n"
     log_path = "log.txt"
     with open(log_path, "a") as f:
         f.write(log_entry)
@@ -71,14 +83,18 @@ if "ingelogd" not in st.session_state or not st.session_state["ingelogd"]:
     login()
     st.stop()
 
-# 👁️‍🗨️ Alleen admin mag log zien
+# 👁️‍🗨️ Alleen admin mag log zien (ingeklapt)
 if st.session_state.get("gebruiker") == "admin":
-    st.markdown("<div class='section-header'>📄 Inloglogboek (alleen admin)</div>", unsafe_allow_html=True)
-    if os.path.exists("log.txt"):
-        with open("log.txt", "r") as f:
-            st.text_area("Loginhistorie", f.read(), height=250)
-    else:
-        st.info("📭 Nog geen logboek aangemaakt.")
+    with st.expander("📄 Inloglogboek bekijken (alleen admin)"):
+        log_path = "log.txt"
+        if os.path.exists(log_path):
+            df_log = pd.read_csv(log_path, names=["Datumtijd", "Gebruiker", "IP-adres", "Locatie"])
+            st.dataframe(df_log)
+            log_buffer = BytesIO()
+            df_log.to_csv(log_buffer, index=False)
+            st.download_button("📥 Download logboek als CSV", data=log_buffer.getvalue(), file_name="login_log.csv")
+        else:
+            st.info("📭 Nog geen logboek aangemaakt.")
 
 # 📁 Upload twee bestanden
 st.markdown("<div class='section-header'>📂 Upload je Excelbestanden</div>", unsafe_allow_html=True)
