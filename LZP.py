@@ -86,54 +86,60 @@ if prezero_file and avalex_file:
         df_avalex_rest = df_avalex[df_avalex['Bestemming'] != waarde].copy()
 
         if all(k in df_prezero.columns for k in ['weegbonnr', 'gewicht']) and \
-           all(k in df_avalex_filtered.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
+                all(k in df_avalex_filtered.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
 
-            def normalize_avalex_bon(val):
-                try:
-                    if pd.isna(val) or str(val).strip() == "":
-                        return ""
-                    return str(int(float(val)))
-                except:
-                    return str(val).strip()
-
-            def normalize_prezero_bon(val):
-                try:
-                    return str(int(float(val)))
-                except:
-                    return str(val).strip()
-
-            df_avalex_filtered['Weegbonnummer_genorm'] = df_avalex_filtered['Weegbonnummer'].apply(normalize_avalex_bon)
-            df_prezero['weegbonnr_genorm'] = df_prezero['weegbonnr'].apply(normalize_prezero_bon)
-
-            bon_dict = df_prezero.set_index('weegbonnr_genorm')['gewicht'].to_dict()
-
-            resultaten = []
-            for _, row in df_avalex_filtered.iterrows():
-                bon = row['Weegbonnummer_genorm']
-                gewicht = row['Gewicht(kg)']
-
-                if bon == "":
-                    resultaat = "Geen bon aanwezig"
-                elif bon in bon_dict:
-                    gewicht_ref = bon_dict[bon]
+            with st.spinner("🔄 Bestanden worden vergeleken…"):
+                # Normaliseer weegbonnummers
+                def normalize_avalex_bon(val):
                     try:
-                        if pd.isna(gewicht) or round(gewicht, 1) != round(gewicht_ref, 1):
-                            resultaat = gewicht_ref
-                        else:
-                            resultaat = "Bon aanwezig"
+                        if pd.isna(val) or str(val).strip() == "":
+                            return ""
+                        return str(int(float(val)))
                     except:
-                        resultaat = gewicht_ref
-                else:
-                    resultaat = "Geen bon aanwezig"
+                        return str(val).strip()
 
-                resultaten.append(resultaat)
 
-            df_avalex_filtered['komt voor in PreZero'] = resultaten
-            df_avalex_rest['komt voor in PreZero'] = ""
-            df_avalex_combined = pd.concat([df_avalex_filtered, df_avalex_rest], ignore_index=True)
+                def normalize_prezero_bon(val):
+                    try:
+                        return str(int(float(val)))
+                    except:
+                        return str(val).strip()
 
-            avalex_bonnen = df_avalex_combined['Weegbonnummer'].dropna().apply(normalize_avalex_bon).tolist()
-            ontbrekende_mask = ~df_prezero['weegbonnr_genorm'].isin(avalex_bonnen)
+
+                df_avalex_filtered['Weegbonnummer_genorm'] = df_avalex_filtered['Weegbonnummer'].apply(
+                    normalize_avalex_bon)
+                df_prezero['weegbonnr_genorm'] = df_prezero['weegbonnr'].apply(normalize_prezero_bon)
+
+                # Bouw dictionary van PreZero
+                bon_dict = df_prezero.set_index('weegbonnr_genorm')['gewicht'].to_dict()
+
+                # Vergelijk gewichten en bepaal resultaat per rij
+                resultaten = []
+                for _, row in df_avalex_filtered.iterrows():
+                    bon = row['Weegbonnummer_genorm']
+                    gewicht = row['Gewicht(kg)']
+                    if bon == "":
+                        resultaat = "Geen bon aanwezig"
+                    elif bon in bon_dict:
+                        gewicht_ref = bon_dict[bon]
+                        try:
+                            if pd.isna(gewicht) or round(gewicht, 1) != round(gewicht_ref, 1):
+                                resultaat = gewicht_ref
+                            else:
+                                resultaat = "Bon aanwezig"
+                        except:
+                            resultaat = gewicht_ref
+                    else:
+                        resultaat = "Geen bon aanwezig"
+                    resultaten.append(resultaat)
+
+                df_avalex_filtered['komt voor in PreZero'] = resultaten
+                df_avalex_rest['komt voor in PreZero'] = ""
+                df_avalex_combined = pd.concat([df_avalex_filtered, df_avalex_rest], ignore_index=True)
+
+                # Mask voor ontbrekende PreZero-bonnen
+                avalex_bonnen = df_avalex_combined['Weegbonnummer'].dropna().apply(normalize_avalex_bon).tolist()
+                ontbrekende_mask = ~df_prezero['weegbonnr_genorm'].isin(avalex_bonnen)
 
             df_avalex_export = df_avalex_combined.drop(columns=['Weegbonnummer_genorm'], errors='ignore')
             df_prezero_export = df_prezero.drop(columns=['weegbonnr_genorm'], errors='ignore')
