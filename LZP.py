@@ -46,7 +46,7 @@ st.markdown(logo_html, unsafe_allow_html=True)
 gebruikers = st.secrets["auth"]
 
 def login():
-    st.markdown("<div class='section-header'>🔐 LZP Inloggen</div>", unsafe_allow_html=True)
+
     username = st.text_input("Gebruikersnaam")
     password = st.text_input("Wachtwoord", type="password")
     if st.button("Inloggen"):
