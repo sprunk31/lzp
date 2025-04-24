@@ -159,5 +159,3 @@ if prezero_file and avalex_file:
             data=output.getvalue(),
             file_name="LZP_resultaat.xlsx"
         )
-        else:
-            st.error("❌ Kolommen ontbreken in de Excelbestanden.")
