@@ -2,13 +2,13 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 import base64
-from openpyxl.styles import PatternFill
-from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.styles import PatternFill, Font
+import openpyxl
 
 # Pagina instellingen
 st.set_page_config(page_title="LZP Vergelijktool", page_icon="📊", layout="centered")
 
-# ✅ Logo laden vanuit assets/logo.png (voor Streamlit Cloud én lokaal gebruik)
+# ✅ Logo laden vanuit assets/logo.png
 with open("assets/logo.png", "rb") as image_file:
     encoded = base64.b64encode(image_file.read()).decode()
     logo_html = f'''
@@ -46,7 +46,6 @@ st.markdown(logo_html, unsafe_allow_html=True)
 gebruikers = st.secrets["auth"]
 
 def login():
-
     username = st.text_input("Gebruikersnaam")
     password = st.text_input("Wachtwoord", type="password")
     if st.button("Inloggen"):
@@ -108,28 +107,35 @@ if prezero_file and avalex_file:
             bon_dict = df_prezero.set_index('weegbonnr_genorm')['gewicht'].to_dict()
 
             resultaten = []
+            redenen = []
+
             for _, row in df_avalex_filtered.iterrows():
                 bon = row['Weegbonnummer_genorm']
                 gewicht = row['Gewicht(kg)']
 
                 if bon == "":
-                    resultaat = "Geen bon aanwezig"
+                    resultaten.append("Geen bon aanwezig")
+                    redenen.append("")
                 elif bon in bon_dict:
                     gewicht_ref = bon_dict[bon]
                     try:
                         if pd.isna(gewicht) or round(gewicht, 1) != round(gewicht_ref, 1):
-                            resultaat = gewicht_ref
+                            resultaten.append("Bon aanwezig")
+                            redenen.append(gewicht_ref)
                         else:
-                            resultaat = "Bon aanwezig"
+                            resultaten.append("Bon aanwezig")
+                            redenen.append("")
                     except:
-                        resultaat = gewicht_ref
+                        resultaten.append("Bon aanwezig")
+                        redenen.append(gewicht_ref)
                 else:
-                    resultaat = "Geen bon aanwezig"
-
-                resultaten.append(resultaat)
+                    resultaten.append("Geen bon aanwezig")
+                    redenen.append("")
 
             df_avalex_filtered['komt voor in PreZero'] = resultaten
+            df_avalex_filtered['Reden'] = redenen
             df_avalex_rest['komt voor in PreZero'] = ""
+            df_avalex_rest['Reden'] = ""
             df_avalex_combined = pd.concat([df_avalex_filtered, df_avalex_rest], ignore_index=True)
 
             avalex_bonnen = df_avalex_combined['Weegbonnummer'].dropna().apply(normalize_avalex_bon).tolist()
@@ -140,24 +146,45 @@ if prezero_file and avalex_file:
 
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                # Schrijf PreZero-gegevens met opmaak
+                # Schrijf PreZero-gegevens
                 df_prezero_export.to_excel(writer, sheet_name='PreZero', index=False)
                 df_avalex_export.to_excel(writer, sheet_name='Avalex', index=False)
 
-                # Achtergrondkleur toepassen op rijen die ontbreken
                 wb = writer.book
-                ws = wb['PreZero']
-                fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
+                ws_avalex = wb['Avalex']
+                fill_red = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+                font_white = Font(color="FFFFFF")
+
+                # Vind kolomindexen
+                col_komt_voor = None
+                col_reden = None
+                for idx, cell in enumerate(ws_avalex[1], start=1):
+                    if cell.value == 'komt voor in PreZero':
+                        col_komt_voor = idx
+                    elif cell.value == 'Reden':
+                        col_reden = idx
+
+                # Rode kleur voor afwijkingen
+                for row in ws_avalex.iter_rows(min_row=2, max_row=ws_avalex.max_row):
+                    if col_reden and row[col_reden - 1].value not in (None, "", " "):
+                        if col_komt_voor:
+                            cell = row[col_komt_voor - 1]
+                            cell.fill = fill_red
+                            cell.font = font_white
+
+                # PreZero ontbrekende bonnen kleuren (optioneel nog)
+                ws_prezero = wb['PreZero']
+                fill_pink = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
                 for row_idx, missing in enumerate(ontbrekende_mask, start=2):
                     if missing:
-                        for cell in ws[row_idx]:
-                            cell.fill = fill
+                        for cell in ws_prezero[row_idx]:
+                            cell.fill = fill_pink
 
             # 📊 Samenvatting
             st.markdown("<div class='section-header'>📊 Resultaatoverzicht</div>", unsafe_allow_html=True)
             st.markdown(f"""
             - ✅ Bon aanwezig: **{resultaten.count("Bon aanwezig")}**
-            - ⚖️ Gewicht verschilt: **{sum(isinstance(r, (float, int)) for r in resultaten)}**
+            - ⚖️ Gewicht verschilt: **{df_avalex_combined['Reden'].apply(lambda x: x != "" and not pd.isna(x)).sum()}**
             - ❌ Geen bon aanwezig: **{resultaten.count("Geen bon aanwezig")}**
             - 🔁 PreZero-bonnen zonder match in Avalex: **{ontbrekende_mask.sum()}**
             """)
