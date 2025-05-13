@@ -55,7 +55,7 @@ def login():
         if gebruikers.get(username) == password:
             st.session_state["ingelogd"] = True
             st.success(f"✅ Ingelogd als {username}")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("❌ Ongeldige inloggegevens")
 
