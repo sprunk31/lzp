@@ -65,24 +65,40 @@ st.markdown("<div class='section-header'>📂 Upload je Excelbestanden</div>", u
 prezero_file = st.file_uploader("Upload PreZero Excelbestand (.xlsm, .xlsx, .xls)", type=["xlsm", "xlsx", "xls"], key="prezero")
 avalex_file = st.file_uploader("Upload Avalex Excelbestand (.xlsm, .xlsx, .xls)", type=["xlsm", "xlsx", "xls"], key="avalex")
 
+def find_sheet(sheets: dict, required_cols: set):
+    for name, df in sheets.items():
+        if required_cols.issubset(df.columns):
+            return df, name
+    return None, None
+
 if prezero_file and avalex_file:
-    try:
-        prezero_sheets = pd.read_excel(prezero_file, sheet_name=None, engine=None)
-        avalex_sheets = pd.read_excel(avalex_file, sheet_name=None, engine=None)
-    except Exception as e:
-        st.error(f"❌ Fout bij het lezen van de Excelbestanden: {e}")
-        st.stop()
+        try:
+        # Lees ál de bladen in
+            prezero_sheets = pd.read_excel(prezero_file, sheet_name=None)
+            avalex_sheets  = pd.read_excel(avalex_file, sheet_name=None)
+        except Exception as e:
+            st.error(f"❌ Fout bij het lezen van de Excelbestanden: {e}")
+            st.stop()
 
-    if 'Overslag_import' not in prezero_sheets or 'Blad1' not in avalex_sheets:
-        st.error("❌ Vereiste tabbladen ontbreken in één van de bestanden.")
-    else:
-        df_prezero = prezero_sheets['Overslag_import']
-        df_avalex = avalex_sheets['Blad1']
+    # Definieer welke kolommen je nodig hebt per bestand
+        prezero_req = {"weegbonnr", "gewicht"}
+        avalex_req  = {"Weegbonnummer", "Gewicht(kg)", "Bestemming"}
 
+    # Zoek automatisch het juiste blad
+        df_prezero, prezero_name = find_sheet(prezero_sheets, prezero_req)
+        df_avalex,  avalex_name  = find_sheet(avalex_sheets,  avalex_req)
+
+        if df_prezero is None or df_avalex is None:
+            st.error("❌ In één van de bestanden kon geen tabblad met de vereiste kolommen worden gevonden.")
+            st.stop()
+
+    # Optioneel: toon de gevonden bladnamen
+        st.info(f"⚙️ Gekozen PreZero-tabblad: **{prezero_name}**\n\n⚙️ Gekozen Avalex-tabblad: **{avalex_name}**")
+
+    # Gebruik dan df_prezero en df_avalex in je verdere logica…
         waarde = "Suez Recycling Services Berkel"
-
         df_avalex_filtered = df_avalex[df_avalex['Bestemming'] == waarde].copy()
-        df_avalex_rest = df_avalex[df_avalex['Bestemming'] != waarde].copy()
+        df_avalex_rest  = df_avalex[df_avalex['Bestemming'] != waarde].copy()
 
         if all(k in df_prezero.columns for k in ['weegbonnr', 'gewicht']) and \
            all(k in df_avalex_filtered.columns for k in ['Weegbonnummer', 'Gewicht(kg)']):
