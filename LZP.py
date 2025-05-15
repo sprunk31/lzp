@@ -172,6 +172,9 @@ if prezero_file and avalex_file:
         gewicht = df_abs['Gewicht(kg)'].fillna('')
         df_abs.insert(3, 'Gewicht', gewicht)
 
+        mask_reden = df_abs['Reden'].notna() & (df_abs['Reden'].astype(str).str.strip() != '')
+        df_abs.loc[mask_reden, 'Gewicht'] = df_abs.loc[mask_reden, 'Reden']
+
         pos = df_abs.columns.get_loc('Gewicht') + 1
         df_abs.insert(pos, '', '')
         df_abs.insert(pos + 1, ' ', '')
@@ -219,6 +222,9 @@ if prezero_file and avalex_file:
 
         gewicht = df_hah['Gewicht(kg)'].fillna('')
         df_hah.insert(3, 'Gewicht', gewicht)
+
+        mask_reden = df_hah['Reden'].notna() & (df_hah['Reden'].astype(str).str.strip() != '')
+        df_hah.loc[mask_reden, 'Gewicht'] = df_hah.loc[mask_reden, 'Reden']
 
         pos = df_hah.columns.get_loc('Gewicht') + 1
         df_hah.insert(pos, '', '')
