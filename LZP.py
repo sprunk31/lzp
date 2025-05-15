@@ -214,8 +214,8 @@ if prezero_file and avalex_file:
 
         df_hah.insert(1, 'Laaddatum_1', formatted)
 
-        afvalstroom = df_hah['Afvalstroom'].fillna('').astype(str)
-        df_hah.insert(2, 'Afvalstroom_1', afvalstroom)
+        afvalstroom = df_hah['Projectnummer'].fillna('').astype(str)
+        df_hah.insert(2, 'Projectnummer_1', afvalstroom)
 
         gewicht = df_hah['Gewicht(kg)'].fillna('')
         df_hah.insert(3, 'Gewicht', gewicht)
