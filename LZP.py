@@ -140,14 +140,106 @@ if prezero_file and avalex_file:
         df_avalex_rest['Reden'] = ""
         df_avalex_combined = pd.concat([df_avalex_filtered, df_avalex_rest], ignore_index=True)
 
+        # Zorg dat Bestemming strings zijn
+        bestemmingen = df_avalex_combined['Project'].fillna('').astype(str)
+
+        # ------------------ Alle rijen wél met “ABS”
+        mask_abs = bestemmingen.str.contains(r'\bABS\b', case=False, na=False)
+        df_abs = df_avalex_combined[mask_abs].copy()
+
+        lijsten = df_abs['Weegbonnummer'].fillna('').astype(str)
+        df_abs.insert(
+            0,
+            'LZP_Weegbonnumer',
+            'LZP_' + lijsten
+        )
+
+        df_abs['Laaddatum'] = pd.to_datetime(
+            df_abs['Laaddatum'],
+            dayfirst=True,
+            errors='coerce'
+        )
+
+        # 2) Maak de geformatteerde strings zonder voorloopnul
+        formatted = df_abs['Laaddatum'].apply(
+            lambda x: f"{x.day}-{x.month}-{x.year}" if pd.notna(x) else ""
+        )
+        df_abs.insert(1, 'Laaddatum_1', formatted)
+
+        afvalstroom = df_abs['Afvalstroom'].fillna('').astype(str)
+        df_abs.insert(2, 'Afvalstroom_1', afvalstroom)
+
+        gewicht = df_abs['Gewicht(kg)'].fillna('')
+        df_abs.insert(3, 'Gewicht', gewicht)
+
+        pos = df_abs.columns.get_loc('Gewicht') + 1
+        df_abs.insert(pos, '', '')
+        df_abs.insert(pos + 1, ' ', '')
+
+
+        # --------------------- Alle rijen zónder “ABS”
+        mask_hah = ~mask_abs
+        df_hah = df_avalex_combined[mask_hah].copy()
+
+        # 2) Normaliseer weegbonnummers: geen NaN, geen voorloopnullen, geen decimals
+        def strip_bon(val):
+            if pd.isna(val) or str(val).strip() == "":
+                return ""
+            s = str(val).strip()
+            # Strip leading zeros
+            s = s.lstrip("0")
+            return s
+
+
+        # toegepast op de kolom
+        lijsten = df_hah['Weegbonnummer'].apply(strip_bon)
+
+        # 3) Insert nieuwe kolom mét “LZP_” prefix
+        df_hah.insert(
+            0,
+            'LZP_Weegbonnummer',
+            'LZP_' + lijsten
+        )
+
+        df_hah['Laaddatum'] = pd.to_datetime(
+            df_hah['Laaddatum'],
+            dayfirst=True,
+            errors='coerce'
+        )
+
+        # 2) Maak de geformatteerde strings zonder voorloopnul
+        formatted = df_hah['Laaddatum'].apply(
+            lambda x: f"{x.day}-{x.month}-{x.year}" if pd.notna(x) else ""
+        )
+
+        df_hah.insert(1, 'Laaddatum_1', formatted)
+
+        afvalstroom = df_hah['Afvalstroom'].fillna('').astype(str)
+        df_hah.insert(2, 'Afvalstroom_1', afvalstroom)
+
+        gewicht = df_hah['Gewicht(kg)'].fillna('')
+        df_hah.insert(3, 'Gewicht', gewicht)
+
+        pos = df_hah.columns.get_loc('Gewicht') + 1
+        df_hah.insert(pos, '', '')
+        df_hah.insert(pos+1, ' ', '')
+
+
         avalex_bonnen = df_avalex_combined['Weegbonnummer'].dropna().apply(normalize_bon).tolist()
         ontbrekende_mask = ~df_prezero['weegbonnr_genorm'].isin(avalex_bonnen)
 
         # Schrijven naar Excel met kleuring
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df_prezero.drop(columns=['weegbonnr_genorm'], errors='ignore').to_excel(writer, sheet_name='PreZero', index=False)
-            df_avalex_combined.drop(columns=['Weegbonnummer_genorm'], errors='ignore').to_excel(writer, sheet_name='Avalex', index=False)
+            # 1) je bestaande sheets
+            df_prezero.drop(columns=['weegbonnr_genorm'], errors='ignore') \
+                .to_excel(writer, sheet_name='PreZero', index=False)
+            df_avalex_combined.drop(columns=['Weegbonnummer_genorm'], errors='ignore') \
+                .to_excel(writer, sheet_name='Avalex', index=False)
+
+            # 2) maak twee nieuwe DataFrames aan door te filteren
+            df_abs.to_excel(writer, sheet_name='ABS', index=False)
+            df_hah.to_excel(writer, sheet_name='HaH', index=False)
 
             wb = writer.book
             ws_avalex = wb['Avalex']
