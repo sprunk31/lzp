@@ -63,6 +63,10 @@ if not st.session_state["ingelogd"]:
     login()
     st.stop()
 
+if st.button("Uitloggen"):
+    st.session_state["ingelogd"] = False
+    st.rerun()
+
 # 📁 Upload twee bestanden
 st.markdown("<div class='section-header'>📂 Upload je Excelbestanden</div>", unsafe_allow_html=True)
 prezero_file = st.file_uploader("Upload PreZero Excelbestand (.xlsm, .xlsx, .xls)", type=["xlsm", "xlsx", "xls"], key="prezero")
@@ -252,6 +256,8 @@ if prezero_file and avalex_file:
             fill_red = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
             font_white = Font(color="FFFFFF")
 
+            col_komt = None
+            col_red = None
             for idx, cell in enumerate(ws_avalex[1], start=1):
                 if cell.value == 'komt voor in PreZero': col_komt = idx
                 if cell.value == 'Reden': col_red = idx
